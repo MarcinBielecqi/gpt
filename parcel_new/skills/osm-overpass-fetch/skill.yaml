@@ -1,0 +1,5 @@
+name: osm-overpass-fetch
+profiles: [quick, normal, deep]
+public_args: [run-id, workspace, canon-db, profile, resume, dry-run, input-summary, input-artifact]
+domain_args: ["", "", "", ""]
+artifacts: ["osm_features_import", "skill_summary"]
