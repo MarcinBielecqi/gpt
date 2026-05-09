@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Result Presentation Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/map.css">
+</head>
+<body>
+  <div id="map"></div>
+  <div id="err" class="err"></div>
+
+  <section class="panel controls">
+    <label>tryb
+      <select id="viewMode">
+        <option value="general">ogólny</option>
+        <option value="analysis">analiza</option>
+      </select>
+    </label>
+    <label>analiza z analysis/
+      <select id="analysisSelect">
+        <option value="">brak / wybierz JSON...</option>
+      </select>
+    </label>
+    <div class="inline">
+      <input id="analysisFile" class="file-small" type="file" accept="application/json,.json">
+      <button id="analysisInfoBtn" type="button">opis</button>
+    </div>
+    <label>widok mapy
+      <select id="base">
+        <option value="street">ulice</option>
+        <option value="satellite">satelita</option>
+      </select>
+    </label>
+    <label>kolor poligonów
+      <select id="color">
+        <option value="commune">gmina</option>
+        <option value="county">powiat</option>
+        <option value="voivodeship">województwo</option>
+        <option value="precinct">obręb</option>
+      </select>
+    </label>
+    <label>limit poligonów <output id="limitOut">500</output>
+      <input id="limit" type="range" min="5" max="8000" step="5" value="500">
+    </label>
+    <label>powierzchnia działki
+      <div class="area-values">
+        <output id="areaMinOut">0 m²</output>
+        <span>–</span>
+        <output id="areaMaxOut">∞</output>
+      </div>
+      <div class="area-slider">
+        <input id="areaMin" type="range" min="0" max="1000" step="1" value="0">
+        <input id="areaMax" type="range" min="0" max="1000" step="1" value="1000">
+      </div>
+    </label>
+    <label>gęste miejsca
+      <select id="jump"><option value="">wybierz...</option></select>
+    </label>
+  </section>
+
+  <section class="mini-hud">
+    <div class="mini-title">Result Presentation Map</div>
+    <div class="mini-note">Poligony z <code>canon.sqlite</code> przez lokalny serwer. Filtry powierzchni i analizy działają po stronie serwera.</div>
+    <div class="mini-stats">
+      <div class="mini-stat"><b id="total">0</b><span>działek DB</span></div>
+      <div class="mini-stat"><b id="visible">0</b><span>w filtrze</span></div>
+      <div class="mini-stat"><b id="drawn">0</b><span>rysowane</span></div>
+      <div class="mini-stat"><b id="modeLabel">ogólny</b><span>tryb</span></div>
+    </div>
+    <div id="status" class="mini-status">Ładowanie manifestu...</div>
+  </section>
+
+  <section id="analysisPanel" class="panel analysis-panel">
+    <div class="head">
+      <h2 id="analysisTitle">Analiza</h2>
+      <button id="collapseAnalysis" type="button">zwiń</button>
+    </div>
+    <div id="analysisMeta" class="meta muted"></div>
+    <div id="analysisDescription" class="body"></div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/map_viewer.js"></script>
+</body>
+</html>

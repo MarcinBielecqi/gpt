@@ -1,0 +1,11 @@
+{
+  "title": "Testowa analiza – przykładowe działki",
+  "description": "Przykładowy plik analizy do szybkiego sprawdzenia trybu analiza na mapie. Zawiera kilka realnych parcel_id z canon.sqlite.",
+  "parcel_ids": [
+    "020810_5.0008.386/9",
+    "020810_5.0008.386/11",
+    "021002_1.0006.AR_3.14",
+    "021002_1.0006.AR_8.12/3",
+    "021002_1.0006.AR_4.16/3"
+  ]
+}

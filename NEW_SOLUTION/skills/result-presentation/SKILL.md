@@ -7,7 +7,7 @@ Tworzy metadane prezentacji wyników oraz lokalny viewer mapy działek podobny d
 Dla `--view map` skill nie generuje nowych skryptów ani HTML przy każdym uruchomieniu. Uruchamia stały serwer z folderu skilla:
 
 ```text
-NEW_SOLUTION/skills/result-presentation/src/map_server.py
+NEW_SOLUTION/skills/result-presentation/src/map_server_compact.py
 ```
 
 Serwer zwraca świeży link `localhost` i sam kończy działanie po TTL. Domyślny TTL to `300` sekund, czyli 5 minut.
@@ -21,7 +21,7 @@ Serwer zwraca świeży link `localhost` i sam kończy działanie po TTL. Domyśl
 | `--port` | Port lokalnego serwera mapy. `0` wybiera wolny port. |
 | `--ttl-seconds` | Czas życia lokalnego serwera w sekundach. Domyślnie `300`. |
 | `--map-limit` | Domyślny limit renderowanych działek. Domyślnie `500`; UI pozwala dojść do `8000`. |
-| `--analysis-dir` | Folder z plikami JSON analiz. Domyślnie `<folder canon.sqlite>/analysis`, zwykle `data/analysis`. |
+| `--analysis-dir` | Folder z plikami JSON analiz. Domyślnie `analysis` względem katalogu, z którego uruchamiasz komendę. |
 | `--serve-timeout-seconds` | Maksymalny czas health-checku serwera. Domyślnie `15`. |
 | `--no-serve` | Publikuje metadane mapy bez uruchamiania localhost. |
 
@@ -29,7 +29,7 @@ Standardowe argumenty protokołu skilla pozostają bez zmian: `--run-id`, `--wor
 
 ## Lokalny viewer mapy
 
-`--view map` uruchamia `src/map_server.py`, który serwuje:
+`--view map` uruchamia `src/map_server_compact.py`, który korzysta ze stałych plików `src/static/map.html`, `src/static/map.css` i `src/static/map_viewer.js`, który serwuje:
 
 ```text
 /map.html
@@ -57,10 +57,12 @@ Filtry powierzchni i analizy działek są wykonywane po stronie lokalnego serwer
 Domyślny folder analiz to:
 
 ```text
-data/analysis
+analysis
 ```
 
-Mapa pokazuje pliki `.json` z tego folderu w wybierajce. Użytkownik może też wczytać plik JSON ręcznie przez input pliku w przeglądarce.
+Mapa pokazuje pliki `.json` z tego folderu w wybierajce. Folder `analysis/` jest przeznaczony na wersjonowane pliki analiz i nie powinien być ignorowany przez `.gitignore`.
+
+Użytkownik może też wczytać plik JSON ręcznie przez input pliku w przeglądarce.
 
 Preferowany format:
 
