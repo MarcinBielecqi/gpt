@@ -2,69 +2,64 @@
 
 ## Cel
 
-Tworzy metadane prezentacji i opcjonalny HTML na podstawie artefaktów z bus DB.
+Tworzy metadane prezentacji wyników oraz lokalny viewer mapy działek podobny do `OLD_SOLUTION/maps/all_parcels.html`.
 
-## Publiczne wejścia CLI
+Dla `--view map` skill nie generuje nowych skryptów ani HTML przy każdym uruchomieniu. Uruchamia stały serwer z folderu skilla:
 
-| Parametr | Opis |
-|---|---|
-| `--run-id` | Identyfikator runu. |
-| `--workspace` | Katalog roboczy runu, np. `runs/walbrzych_001`. |
-| `--canon-db` | Ścieżka do bazy kanonicznej, np. `data/canon.sqlite`. |
-| `--profile` | Profil wykonania: `quick`, `normal`, `deep`. |
-| `--resume` | Opcjonalne wznowienie. |
-| `--dry-run` | Sprawdza wejścia bez pełnego wykonania. |
-| `--input-summary` | Opcjonalny selektor artefaktu `skill_summary` z `project_bus.sqlite`. |
-| `--input-artifact` | Opcjonalny selektor artefaktu z `project_bus.sqlite`, np. `parcel_candidates:default`. |
+```text
+NEW_SOLUTION/skills/result-presentation/src/map_server.py
+```
 
-## Wejścia domenowe
+Serwer zwraca świeży link `localhost` i sam kończy działanie po TTL. Domyślny TTL to `300` sekund, czyli 5 minut.
+
+## CLI
 
 | Parametr | Opis |
 |---|---|
 | `--view` | `summary`, `map`, `candidates` albo `all`. |
+| `--host` | Host lokalnego serwera mapy. Domyślnie `127.0.0.1`. |
+| `--port` | Port lokalnego serwera mapy. `0` wybiera wolny port. |
+| `--ttl-seconds` | Czas życia lokalnego serwera w sekundach. Domyślnie `300`. |
+| `--map-limit` | Domyślny limit renderowanych działek. Domyślnie `500`. |
+| `--serve-timeout-seconds` | Maksymalny czas health-checku serwera. Domyślnie `15`. |
+| `--no-serve` | Publikuje metadane mapy bez uruchamiania localhost. |
 
-## Dostęp do danych
+Standardowe argumenty protokołu skilla pozostają bez zmian: `--run-id`, `--workspace`, `--canon-db`, `--profile`, `--resume`, `--dry-run`, `--input-summary`, `--input-artifact`.
 
-Skill może czytać:
+## Lokalny viewer mapy
+
+`--view map` uruchamia `src/map_server.py`, który serwuje:
 
 ```text
-data/canon.sqlite
-data/project_bus.sqlite
-runs/<run_id>/skills/result_presentation/run.sqlite
+/map.html
+/api/health
+/api/manifest
+/api/parcels?bbox=<minLat,minLon,maxLat,maxLon>&limit=<n>
+/api/artifacts
 ```
 
-Skill może pisać:
+Viewer czyta dane na bieżąco z `canon.sqlite`:
 
 ```text
-data/canon.sqlite
-data/project_bus.sqlite
-runs/<run_id>/skills/result_presentation/run.sqlite
+canon_parcels
+canon_parcel_polygon_points
+canon_rcn_price_observations
 ```
 
-Skill nie czyta lokalnych baz innych skillów.
-
-## Artefakty publikowane
+## Artefakty
 
 | `artifact_type` | Opis |
 |---|---|
-| `report_metadata` | Metadane raportu. |
-| `html_report` | Ścieżka do wygenerowanego HTML, jeśli powstał. |
-| `skill_summary` | Mały raport końcowy zapisany jako JSON string w `bus_artifacts.payload_json`. |
-
-## Komunikacja
-
-`stdout` zawiera dokładnie jedną końcową linię JSON.
-
-`stderr` może zawierać tylko:
-
-```text
-PROGRESS {...}
-ERROR {...}
-```
+| `report_metadata` | Metadane widoku. |
+| `local_map_server` | Świeży link `localhost`, TTL, port i health URL. |
+| `html_report` | Prosty HTML tylko dla `summary`, `candidates`, `all`. |
+| `skill_summary` | Końcowy JSON protokołu skilla. |
 
 ## Zasady
 
-Nie twórz luźnych plików JSON.
+Nie twórz luźnych JSON-ów.
+
+Nie generuj nowych skryptów ani HTML dla widoku mapy przy każdym uruchomieniu.
 
 Publikuj wspólne JSON-y wyłącznie jako string w `project_bus.sqlite`.
 
