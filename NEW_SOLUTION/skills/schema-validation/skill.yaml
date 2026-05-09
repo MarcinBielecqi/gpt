@@ -1,0 +1,5 @@
+name: schema-validation
+profiles: [quick, normal, deep]
+public_args: [run-id, workspace, canon-db, profile, resume, dry-run, input-summary, input-artifact]
+domain_args: [""]
+artifacts: ["validation_result", "skill_summary"]

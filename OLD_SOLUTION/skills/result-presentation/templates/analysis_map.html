@@ -1,0 +1,464 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>__TITLE__</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="__LEAFLET_CSS_HREF__">
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+    body { font-family: Arial, sans-serif; }
+    .panel {
+      position: absolute;
+      z-index: 1000;
+      top: 12px;
+      right: 12px;
+      background: white;
+      padding: 10px 12px;
+      border: 1px solid #bbb;
+      font: 14px Arial, sans-serif;
+      max-width: 360px;
+      overflow-wrap: anywhere;
+    }
+    .parcel-nav {
+      position: absolute;
+      z-index: 1000;
+      right: 12px;
+      bottom: 18px;
+      width: min(380px, calc(100vw - 24px));
+      max-height: 44vh;
+      background: white;
+      border: 1px solid #bbb;
+      font: 13px Arial, sans-serif;
+      display: none;
+      overflow: hidden;
+    }
+    .parcel-nav__header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 10px;
+      border-bottom: 1px solid #ddd;
+      font-weight: 700;
+    }
+    .parcel-nav__count {
+      color: #4b5563;
+      font-weight: 400;
+      white-space: nowrap;
+    }
+    .parcel-nav__list {
+      max-height: calc(44vh - 38px);
+      overflow: auto;
+    }
+    .parcel-nav__item {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+      min-height: 46px;
+      padding: 7px 10px;
+      border: 0;
+      border-bottom: 1px solid #eee;
+      background: white;
+      color: #111827;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .parcel-nav__item:hover,
+    .parcel-nav__item:focus {
+      background: #f0fdf4;
+      outline: none;
+    }
+    .parcel-nav__item.is-active {
+      background: #dcfce7;
+    }
+    .parcel-nav__index {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: #166534;
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .parcel-nav__title {
+      display: block;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+    .parcel-nav__meta {
+      display: block;
+      color: #4b5563;
+      font-size: 12px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .parcel-nav__area {
+      color: #14532d;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .legend {
+      position: absolute;
+      z-index: 1000;
+      left: 12px;
+      bottom: 18px;
+      background: white;
+      padding: 10px 12px;
+      border: 1px solid #bbb;
+      font: 13px Arial, sans-serif;
+      max-width: 360px;
+      max-height: 42vh;
+      overflow: auto;
+    }
+    .legend label { display: block; margin: 4px 0; white-space: nowrap; }
+    .legend-section {
+      margin-top: 9px;
+      padding-top: 8px;
+      border-top: 1px solid #ddd;
+    }
+    .swatch {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      margin-right: 6px;
+      vertical-align: -1px;
+      border: 1px solid #555;
+    }
+    .error {
+      position: absolute;
+      z-index: 2000;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      background: #fff7ed;
+      border: 1px solid #f97316;
+      color: #7c2d12;
+      padding: 12px;
+      font: 14px Arial, sans-serif;
+      display: none;
+    }
+    @media (max-width: 700px) {
+      .panel {
+        left: 12px;
+        right: 12px;
+        max-width: none;
+      }
+      .legend {
+        top: 150px;
+        bottom: auto;
+        max-width: 190px;
+        max-height: 34vh;
+      }
+      .parcel-nav {
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-height: 32vh;
+      }
+      .parcel-nav__list {
+        max-height: calc(32vh - 38px);
+      }
+      .parcel-nav__item {
+        grid-template-columns: 28px minmax(0, 1fr) 58px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<div id="error" class="error"></div>
+<div id="panel" class="panel"></div>
+<div id="parcel-nav" class="parcel-nav">
+  <div class="parcel-nav__header">
+    <span>Parcels</span>
+    <span id="parcel-nav-count" class="parcel-nav__count"></span>
+  </div>
+  <div id="parcel-nav-list" class="parcel-nav__list"></div>
+</div>
+<div id="legend" class="legend">
+  <b>Map type</b>
+  <label><input name="basemap" type="radio" value="osm"> Street map</label>
+  <label><input name="basemap" type="radio" value="satellite" checked> Satellite</label>
+  <div class="legend-section">
+  <b>Visible layers</b>
+  <div id="legend-items"></div>
+  <label><input id="parcel-toggle" type="checkbox"> <span class="swatch" style="background:#22c55e"></span>Layer 2 parcels</label>
+  </div>
+</div>
+<script src="__LEAFLET_JS_SRC__"></script>
+<script src="__DATA_JS_SRC__"></script>
+<script>
+(function () {
+  function showError(message) {
+    const box = document.getElementById('error');
+    box.textContent = message;
+    box.style.display = 'block';
+  }
+
+  try {
+    if (!window.L) {
+      showError('Leaflet did not load. Check that leaflet.js is next to this HTML file.');
+      return;
+    }
+    const payload = window.PARCEL_ANALYSIS_DATA;
+    if (!payload) {
+      showError('Map data did not load. Check that analysis_data.js is next to this HTML file.');
+      return;
+    }
+
+    const data = payload.data || { type: 'FeatureCollection', features: [] };
+    const points = payload.points || [];
+    const parcels = payload.parcels || { type: 'FeatureCollection', features: [] };
+    const categories = payload.categories || [];
+    const counts = payload.counts || {};
+    const analysisId = payload.analysis_id || '';
+    const runIds = payload.run_ids || [];
+    const palette = ['#d97706', '#0f766e', '#2563eb', '#7c3aed', '#be123c', '#4d7c0f', '#0891b2', '#a16207'];
+    const map = L.map('map');
+
+    const streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: 'OSM'
+    });
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; Esri'
+    });
+    satelliteLayer.addTo(map);
+
+    document.querySelectorAll('input[name="basemap"]').forEach(input => {
+      input.addEventListener('change', event => {
+        const next = event.target.value;
+        if (next === 'satellite') {
+          if (map.hasLayer(streetLayer)) map.removeLayer(streetLayer);
+          if (!map.hasLayer(satelliteLayer)) satelliteLayer.addTo(map);
+        } else {
+          if (map.hasLayer(satelliteLayer)) map.removeLayer(satelliteLayer);
+          if (!map.hasLayer(streetLayer)) streetLayer.addTo(map);
+        }
+      });
+    });
+
+    document.getElementById('panel').innerHTML =
+      `<b>Analysis layers</b><br>analysis: ${esc(analysisId)}<br>runs: ${runIds.length || counts.runs || 0}` +
+      `<br>Layer 1: ${counts.mesh_cells || 0} mesh cells, ${counts.osm_points || 0} OSM objects` +
+      `<br>Layer 2: ${counts.parcels || 0} parcels`;
+
+    const meshGroups = {};
+    const pointGroups = {};
+    categories.forEach(category => {
+      meshGroups[category] = L.layerGroup();
+      pointGroups[category] = L.layerGroup();
+    });
+
+    function color(category) {
+      const idx = Math.max(0, categories.indexOf(category));
+      return palette[idx % palette.length];
+    }
+    function googleMapsLink(lat, lon) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
+    }
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function rowsPopup(rows) {
+      return rows.map(([key, value]) => `<b>${esc(key)}</b>: ${esc(value ?? '')}`).join('<br>');
+    }
+    function meshPopup(p) {
+      return rowsPopup([
+        ['cell_id', p.cell_id],
+        ['run_id', p.run_id],
+        ['category', p.category],
+        ['tag', `${p.tag_key || ''}=${p.tag_value || ''}`],
+        ['score', Number(p.score || 0).toFixed(3)],
+        ['norm', Number(p.norm || 0).toFixed(3)],
+        ['point_count', p.point_count],
+        ['density_per_km2', Number(p.density_per_km2 || 0).toFixed(3)],
+        ['area_m2', Number(p.area_m2 || 0).toFixed(1)],
+        ['bbox', p.bbox]
+      ]);
+    }
+    function parcelPopup(p) {
+      const rows = [
+        ['parcel_id', p.parcel_id],
+        ['parcel_number', p.parcel_number],
+        ['commune', p.commune],
+        ['county', p.county],
+        ['voivodeship', p.voivodeship],
+        ['area_m2', Number(p.area_m2 || 0).toFixed(1)],
+        ['rcn_records', p.rcn_records || 0],
+        ['avg_price_per_m2', p.avg_price_per_m2 == null ? '' : Number(p.avg_price_per_m2).toFixed(2)],
+        ['avg_price_per_m2_real', p.avg_inflation_adjusted_price_per_m2 == null ? '' : `${Number(p.avg_inflation_adjusted_price_per_m2).toFixed(2)} @ ${p.inflation_reference_year || ''}`],
+        ['compactness', p.compactness == null ? '' : Number(p.compactness).toFixed(4)],
+        ['elongation_ratio', p.elongation_ratio == null ? '' : Number(p.elongation_ratio).toFixed(4)],
+        ['green_pixel_ratio', p.green_pixel_ratio == null ? '' : Number(p.green_pixel_ratio).toFixed(4)],
+        ['dark_pixel_ratio', p.dark_pixel_ratio == null ? '' : Number(p.dark_pixel_ratio).toFixed(4)],
+        ['bright_pixel_ratio', p.bright_pixel_ratio == null ? '' : Number(p.bright_pixel_ratio).toFixed(4)],
+        ['low_saturation_ratio', p.low_saturation_ratio == null ? '' : Number(p.low_saturation_ratio).toFixed(4)]
+      ];
+      return rowsPopup(rows) + `<br><a href="${googleMapsLink(p.lat, p.lon)}" target="_blank" rel="noopener">Google Maps</a>`;
+    }
+    function parcelLabelIcon(index) {
+      return L.divIcon({
+        className: 'parcel-label',
+        html: `<div style="background:#166534;color:white;border:2px solid #dcfce7;border-radius:999px;width:24px;height:24px;line-height:20px;text-align:center;font-weight:700;font-size:12px;box-shadow:0 1px 6px rgba(0,0,0,0.45)">${index}</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+    }
+
+    const meshLayer = L.geoJSON(data, {
+      style: feature => {
+        const p = feature.properties || {};
+        return {
+          color: color(p.category),
+          weight: 0.35,
+          opacity: 0.16,
+          fillColor: color(p.category),
+          fillOpacity: Math.max(0.015, Math.min(0.24, Number(p.norm || 0) * 0.24))
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        const p = feature.properties || {};
+        layer.bindPopup(meshPopup(p), { maxWidth: 520 });
+        if (meshGroups[p.category]) layer.addTo(meshGroups[p.category]);
+      }
+    });
+
+    for (const point of points) {
+      const marker = L.circleMarker([point.lat, point.lon], {
+        radius: 5,
+        color: '#111827',
+        weight: 1,
+        fillColor: color(point.category),
+        fillOpacity: 0.88
+      });
+      marker.bindPopup(`<b>${esc(point.name || '(no name)')}</b><br>${esc(point.category)}<br>${esc(point.tag_key)}=${esc(point.tag_value)}<br>${esc(point.osm_type)}/${esc(point.osm_id)}<br><a href="${googleMapsLink(point.lat, point.lon)}" target="_blank" rel="noopener">Google Maps</a>`);
+      if (pointGroups[point.category]) marker.addTo(pointGroups[point.category]);
+    }
+
+    const parcelLayer = L.geoJSON(parcels, {
+      style: () => ({
+        color: '#14532d',
+        weight: 3.2,
+        opacity: 0.98,
+        fillColor: '#22c55e',
+        fillOpacity: 0.20
+      }),
+      onEachFeature: (feature, layer) => layer.bindPopup(parcelPopup(feature.properties || {}), { maxWidth: 520 })
+    });
+    const parcelMarkerLayer = L.layerGroup();
+    const parcelTargets = [];
+    parcels.features.forEach((feature, index) => {
+      const p = feature.properties || {};
+      const marker = L.marker([p.lat, p.lon], { icon: parcelLabelIcon(index + 1), zIndexOffset: 1000 });
+      marker.bindPopup(parcelPopup(p), { maxWidth: 520 });
+      marker.addTo(parcelMarkerLayer);
+      parcelTargets.push({ feature, marker, index: index + 1, properties: p });
+    });
+
+    function setActiveParcelNav(index) {
+      document.querySelectorAll('.parcel-nav__item').forEach(item => {
+        item.classList.toggle('is-active', Number(item.dataset.index) === index);
+      });
+    }
+    function focusParcel(target) {
+      if (!map.hasLayer(parcelLayer)) map.addLayer(parcelLayer);
+      if (!map.hasLayer(parcelMarkerLayer)) map.addLayer(parcelMarkerLayer);
+      parcelToggle.checked = true;
+      const layer = parcelLayer.getLayers()[target.index - 1];
+      const bounds = layer && layer.getBounds ? layer.getBounds() : null;
+      if (bounds && bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [80, 80], maxZoom: 18 });
+      } else {
+        map.setView([target.properties.lat, target.properties.lon], Math.max(map.getZoom(), 17));
+      }
+      setActiveParcelNav(target.index);
+    }
+    function renderParcelNav() {
+      const nav = document.getElementById('parcel-nav');
+      const list = document.getElementById('parcel-nav-list');
+      const count = document.getElementById('parcel-nav-count');
+      if (!parcelTargets.length) return;
+      nav.style.display = 'block';
+      count.textContent = `${parcelTargets.length} shown`;
+      parcelTargets.forEach(target => {
+        const p = target.properties;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'parcel-nav__item';
+        button.dataset.index = String(target.index);
+        button.innerHTML =
+          `<span class="parcel-nav__index">${target.index}</span>` +
+          `<span><span class="parcel-nav__title">${esc(p.parcel_id)}</span>` +
+          `<span class="parcel-nav__meta">${esc(p.commune || '')}</span></span>` +
+          `<span class="parcel-nav__area">${Number(p.area_m2 || 0).toFixed(0)} m²</span>`;
+        button.addEventListener('click', () => focusParcel(target));
+        list.appendChild(button);
+      });
+    }
+    renderParcelNav();
+
+    const legendItems = document.getElementById('legend-items');
+    const primaryCategory = parcels.features.length ? null : ((data.features[0] && data.features[0].properties.category) || categories[0] || null);
+    for (const category of categories) {
+      const label = document.createElement('label');
+      const checked = !parcels.features.length && category === primaryCategory;
+      label.innerHTML = `<input type="checkbox" ${checked ? 'checked' : ''}> <span class="swatch" style="background:${color(category)}"></span>${esc(category)}`;
+      legendItems.appendChild(label);
+      if (checked) {
+        map.addLayer(meshGroups[category]);
+        map.addLayer(pointGroups[category]);
+      }
+      label.querySelector('input').addEventListener('change', event => {
+        const visible = event.target.checked;
+        for (const group of [meshGroups[category], pointGroups[category]]) {
+          if (visible && !map.hasLayer(group)) map.addLayer(group);
+          if (!visible && map.hasLayer(group)) map.removeLayer(group);
+        }
+      });
+    }
+
+    const parcelToggle = document.getElementById('parcel-toggle');
+    if (parcels.features.length) {
+      parcelLayer.addTo(map);
+      parcelMarkerLayer.addTo(map);
+      parcelLayer.bringToFront();
+      parcelToggle.checked = true;
+    }
+    parcelToggle.addEventListener('change', event => {
+      if (event.target.checked && !map.hasLayer(parcelLayer)) map.addLayer(parcelLayer);
+      if (event.target.checked && !map.hasLayer(parcelMarkerLayer)) map.addLayer(parcelMarkerLayer);
+      if (!event.target.checked && map.hasLayer(parcelLayer)) map.removeLayer(parcelLayer);
+      if (!event.target.checked && map.hasLayer(parcelMarkerLayer)) map.removeLayer(parcelMarkerLayer);
+    });
+
+    const boundsGroup = L.featureGroup();
+    if (meshLayer.getLayers().length) boundsGroup.addLayer(meshLayer);
+    if (parcelLayer.getLayers().length) boundsGroup.addLayer(parcelLayer);
+    parcelMarkerLayer.eachLayer(layer => boundsGroup.addLayer(layer));
+    if (data.features.length || parcels.features.length) {
+      map.fitBounds(boundsGroup.getBounds(), { padding: [20, 20], maxZoom: 17 });
+    } else {
+      map.setView([52, 19], 6);
+    }
+  } catch (error) {
+    console.error(error);
+    showError(error && error.message ? error.message : String(error));
+  }
+})();
+</script>
+</body>
+</html>

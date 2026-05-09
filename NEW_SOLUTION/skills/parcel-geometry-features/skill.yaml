@@ -1,0 +1,5 @@
+name: parcel-geometry-features
+profiles: [quick, normal, deep]
+public_args: [run-id, workspace, canon-db, profile, resume, dry-run, input-summary, input-artifact]
+domain_args: [""]
+artifacts: ["geometry_features", "skill_summary"]

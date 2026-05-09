@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>All Parcels Viewer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    :root {
+      --ink: #18201b;
+      --muted: #5f6f65;
+      --paper: #f7f6ef;
+      --panel: rgba(255, 255, 250, 0.94);
+      --line: #b9c6b1;
+      --green: #1e7d46;
+      --green-fill: rgba(37, 132, 76, 0.24);
+      --amber: #b87913;
+      --rust: #9c4f2e;
+    }
+    html, body, #map {
+      height: 100%;
+      margin: 0;
+    }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      overflow: hidden;
+    }
+    #map {
+      background: #e9ecdf;
+    }
+    .topbar {
+      position: absolute;
+      z-index: 1000;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+      pointer-events: none;
+    }
+    .panel {
+      pointer-events: auto;
+      background: var(--panel);
+      border: 1px solid rgba(88, 111, 92, 0.35);
+      box-shadow: 0 14px 40px rgba(34, 46, 35, 0.18);
+      backdrop-filter: blur(10px);
+    }
+    .summary {
+      width: min(520px, calc(100vw - 28px));
+      padding: 12px 14px;
+    }
+    .title {
+      margin: 0 0 8px;
+      font-size: 17px;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(76px, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .stat {
+      border: 1px solid #d8dfd2;
+      background: rgba(255,255,255,0.62);
+      padding: 7px 8px;
+    }
+    .stat b {
+      display: block;
+      font-size: 15px;
+    }
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 1px;
+    }
+    .controls {
+      margin-left: auto;
+      padding: 10px;
+      min-width: 220px;
+    }
+    .controls label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      margin: 4px 0;
+      white-space: nowrap;
+    }
+    .slider-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    .slider-row input {
+      grid-column: 1 / -1;
+      width: 100%;
+      accent-color: var(--green);
+    }
+    .slider-row output {
+      min-width: 34px;
+      text-align: right;
+      font-weight: 750;
+      color: var(--green);
+    }
+    .jump-row {
+      margin-top: 10px;
+      display: grid;
+      gap: 5px;
+      font-size: 13px;
+    }
+    .jump-row select {
+      width: 100%;
+      min-height: 30px;
+      border: 1px solid #c8d1c2;
+      background: white;
+      color: var(--ink);
+      font: inherit;
+    }
+    .control-row {
+      margin-top: 10px;
+      display: grid;
+      gap: 5px;
+      font-size: 13px;
+    }
+    .control-row select {
+      width: 100%;
+      min-height: 30px;
+      border: 1px solid #c8d1c2;
+      background: white;
+      color: var(--ink);
+      font: inherit;
+    }
+    .legend {
+      position: absolute;
+      z-index: 1000;
+      left: 14px;
+      bottom: 18px;
+      width: min(380px, calc(100vw - 28px));
+      padding: 12px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .swatch {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 7px;
+      vertical-align: -1px;
+      border: 2px solid var(--green);
+      background: var(--green-fill);
+    }
+    .swatch.group {
+      border-color: var(--amber);
+      background: rgba(184, 121, 19, 0.16);
+    }
+    .swatch.trail {
+      border-color: #d11f4c;
+      background: rgba(209, 31, 76, 0.14);
+    }
+    .group-label {
+      color: #24352a;
+      font: 700 12px "Segoe UI", Tahoma, sans-serif;
+      text-shadow: 0 1px 0 white, 0 0 4px white;
+      white-space: nowrap;
+    }
+    .parcel-popup {
+      min-width: 220px;
+      font: 13px "Segoe UI", Tahoma, sans-serif;
+    }
+    .parcel-popup b {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    .hint {
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .error {
+      position: absolute;
+      z-index: 2000;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: none;
+      padding: 12px 14px;
+      background: #fff7ed;
+      border: 1px solid #ea580c;
+      color: #7c2d12;
+      font: 14px "Segoe UI", Tahoma, sans-serif;
+    }
+    @media (max-width: 760px) {
+      .topbar {
+        display: block;
+      }
+      .controls {
+        margin: 10px 0 0;
+      }
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .legend {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="error" class="error"></div>
+  <div class="topbar">
+    <section class="panel summary">
+      <h1 class="title">All Parcels Viewer</h1>
+      <div id="status" class="status">Ładowanie manifestu działek...</div>
+      <div class="stats">
+        <div class="stat"><b id="statTotal">0</b><span>działek w DB</span></div>
+        <div class="stat"><b id="statVisible">0</b><span>w aktualnym widoku</span></div>
+        <div class="stat"><b id="statRendered">0</b><span>rysowane obiekty</span></div>
+        <div class="stat"><b id="statMode">-</b><span>tryb mapy</span></div>
+      </div>
+    </section>
+    <section class="panel controls">
+      <label><input id="fitOnLoad" type="checkbox" checked> dopasuj widok przy starcie</label>
+      <label><input id="showTrailBoxes" type="checkbox" checked> bboxy szlaku</label>
+      <div class="control-row">
+        <span>podkład mapy</span>
+        <select id="baseLayer">
+          <option value="street">ulice</option>
+          <option value="satellite">satelita</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <span>kolor poligonów</span>
+        <select id="colorBy">
+          <option value="commune">gmina</option>
+          <option value="county">powiat</option>
+          <option value="voivodeship">województwo</option>
+          <option value="precinct">obręb</option>
+        </select>
+      </div>
+      <div class="slider-row">
+        <span>limit obiektów na ekranie</span>
+        <output id="limitValue">120</output>
+        <input id="objectLimit" type="range" min="5" max="1000" step="5" value="120">
+      </div>
+      <div class="jump-row">
+        <span>gęste miejsca</span>
+        <select id="denseJump">
+          <option value="">wybierz obszar...</option>
+        </select>
+      </div>
+    </section>
+  </div>
+  <aside class="panel legend">
+    <div><span class="swatch"></span>Mapa rysuje tylko poligony działek. Suwak ustala maksymalną liczbę rysowanych działek.</div>
+    <div><span class="swatch trail"></span>Bboxy szlaku są generowane z lokalnego overlayu i zachodzą na siebie.</div>
+    <div class="hint">Przesuń lub przybliż mapę, aby załadować inny zestaw poligonów z lokalnych chunków JSON.</div>
+  </aside>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="all_parcels_viewer.js"></script>
+</body>
+</html>

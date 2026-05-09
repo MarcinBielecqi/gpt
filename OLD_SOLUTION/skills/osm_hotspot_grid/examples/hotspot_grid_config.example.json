@@ -1,0 +1,46 @@
+﻿{
+  "global": {
+    "base_cell_m": 1000,
+    "min_cell_m": 100,
+    "max_depth": 6,
+    "min_points": 3,
+    "min_area_m2": 10000,
+    "max_area_m2": 3000000,
+    "hotspot_percentile": 0.75,
+    "margin_m": 50,
+    "dedupe_radius_m": 25,
+    "max_overlap_ratio": 0.7
+  },
+  "categories": {
+    "amenity_restaurant": {
+      "min_points": 3,
+      "min_cell_m": 100,
+      "max_area_m2": 1500000,
+      "dedupe_radius_m": 20
+    },
+    "amenity_parking": {
+      "min_points": 3,
+      "min_cell_m": 150,
+      "max_area_m2": 2000000,
+      "dedupe_radius_m": 40
+    },
+    "tourism_attraction": {
+      "min_points": 3,
+      "min_cell_m": 150,
+      "max_area_m2": 3000000,
+      "dedupe_radius_m": 30
+    },
+    "highway_bus_stop": {
+      "min_points": 4,
+      "min_cell_m": 100,
+      "max_area_m2": 1000000,
+      "dedupe_radius_m": 60
+    },
+    "natural_water": {
+      "min_points": 3,
+      "min_cell_m": 200,
+      "max_area_m2": 5000000,
+      "dedupe_radius_m": 30
+    }
+  }
+}
