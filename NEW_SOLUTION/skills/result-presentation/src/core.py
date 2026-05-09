@@ -33,18 +33,32 @@ def _free_port(host: str) -> int:
         return int(s.getsockname()[1])
 
 
-def _wait_health(url: str, timeout_s: float) -> None:
+def _absolute(path: str | Path) -> Path:
+    return Path(path).expanduser().resolve()
+
+
+def _read_http_error(exc: urllib.error.HTTPError) -> str:
+    try:
+        return exc.read().decode("utf-8", errors="replace")[:1000]
+    except Exception:  # noqa: BLE001
+        return str(exc)
+
+
+def _wait_endpoint(url: str, timeout_s: float) -> dict[str, Any] | None:
     deadline = time.time() + max(0.5, timeout_s)
     last: Exception | None = None
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(url, timeout=1.0) as r:
+            with urllib.request.urlopen(url, timeout=1.5) as r:
+                data = r.read().decode("utf-8", errors="replace")
                 if r.status == 200:
-                    return
+                    return json.loads(data) if data else None
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(f"{url} returned HTTP {exc.code}: {_read_http_error(exc)}") from exc
         except Exception as exc:  # noqa: BLE001
             last = exc
         time.sleep(0.2)
-    raise RuntimeError(f"map server health check failed: {last}")
+    raise RuntimeError(f"{url} did not become ready: {last}")
 
 
 def _start_map(args: argparse.Namespace, ctx) -> dict[str, Any]:
@@ -53,13 +67,21 @@ def _start_map(args: argparse.Namespace, ctx) -> dict[str, Any]:
     host = args.host
     port = int(args.port) if int(args.port) > 0 else _free_port(host)
     server_py = Path(__file__).resolve().parent / "map_server.py"
+    canon_db = _absolute(ctx.canon_db)
+    bus_db = _absolute(ctx.bus_db)
+
+    if not server_py.exists():
+        raise RuntimeError(f"map server script not found: {server_py}")
+    if not canon_db.exists():
+        raise RuntimeError(f"canon db not found: {canon_db}")
+
     cmd = [
         sys.executable,
         str(server_py),
         "--canon-db",
-        str(ctx.canon_db),
+        str(canon_db),
         "--bus-db",
-        str(ctx.bus_db),
+        str(bus_db),
         "--run-id",
         ctx.run_id,
         "--host",
@@ -75,22 +97,32 @@ def _start_map(args: argparse.Namespace, ctx) -> dict[str, Any]:
         cmd,
         cwd=str(ctx.skill_dir),
         stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         start_new_session=True,
+        text=True,
     )
     ts = int(time.time())
     public_host = "127.0.0.1" if host in {"0.0.0.0", "::"} else host
     base_url = f"http://{public_host}:{port}"
     health_url = f"{base_url}/api/health"
+    manifest_url = f"{base_url}/api/manifest"
     try:
-        _wait_health(health_url, float(args.serve_timeout_seconds))
+        _wait_endpoint(health_url, float(args.serve_timeout_seconds))
+        manifest = _wait_endpoint(manifest_url, float(args.serve_timeout_seconds))
     except Exception:
         proc.terminate()
-        raise
+        try:
+            _out, err = proc.communicate(timeout=2)
+        except Exception:  # noqa: BLE001
+            err = ""
+        details = f"\nserver stderr: {err.strip()}" if err else ""
+        raise RuntimeError(f"local map server failed to start correctly{details}") from None
+
     return {
         "local_url": f"{base_url}/map.html?run_id={ctx.run_id}&ts={ts}",
         "health_url": health_url,
+        "manifest_url": manifest_url,
         "host": public_host,
         "bind_host": host,
         "port": port,
@@ -98,6 +130,10 @@ def _start_map(args: argparse.Namespace, ctx) -> dict[str, Any]:
         "ttl_seconds": ttl,
         "expires_at_epoch": time.time() + ttl,
         "server": "result-presentation/src/map_server.py",
+        "canon_db": str(canon_db),
+        "bus_db": str(bus_db),
+        "parcel_count": int((manifest or {}).get("parcel_count") or 0),
+        "rcn_count": int((manifest or {}).get("rcn_count") or 0),
     }
 
 
